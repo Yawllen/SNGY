@@ -24,15 +24,7 @@ def step_Set_Login(message):
 def step_Set_Password(message):
     global key
     key = hashlib.pbkdf2_hmac('sha256', message.text.encode('utf-8'), salt, 100000)
-
-    password = str(key)
-
-    storage = salt + key
-    salt_from_storage = storage[:32]  # 32 является длиной соли
-    key_from_storage = storage[32:]
-    password = str(storage)
-
-    bot.send_message(message.chat.id, "Ваш пароль: " + password)
+    # bot.send_message(message.chat.id, "Ваш пароль: " + password)
     check(message)
 
 @bot.message_handler(commands=['Link'])
@@ -41,16 +33,30 @@ def send_link(message):
 
 def check(message):
 
-    bot.send_message(message.chat.id, "userLogin:  " + str(userLogin))
+        loginForCheck = str(userLogin)
 
-    conn = sqlite3.connect('sup.sqlite')
-    cur = conn.cursor()
-    cur.execute("SELECT password FROM AUTH WHERE login ='yaw'")
-    basepass = cur.fetchone()[0]
-    bot.send_message(message.chat.id, "Пароль из БД:   " + str(basepass))
-    if str(key) == str(basepass):
-        bot.send_message(message.chat.id, "Авторизация прошла успешно")
-    else: bot.send_message(message.chat.id, "Логин или пароль неверный")
-    #send_welcome(message)
+        # bot.send_message(message.chat.id, "userLogin:  " + loginForCheck)
+        conn = sqlite3.connect('sup.sqlite')
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM AUTH WHERE login = '{loginForCheck}'")
+        record = cur.fetchone()
+        if record:
+            if record[1] == loginForCheck:
+                if record[2] == str(key):
+                    bot.send_message(message.chat.id, "Добро пожаловать, " + record[3] + '!')
+                    bot.send_message(message.chat.id, "Ваш ID: " + str(record[0]))
+                else:
+                    cur.close()
+                    bot.send_message(message.chat.id, "Логин или пароль неверный 1")
+                    send_welcome(message)
+            else:
+                cur.close()
+                bot.send_message(message.chat.id, "Логин или пароль неверный 2")
+                send_welcome(message)
+        else:
+            cur.close()
+            bot.send_message(message.chat.id, "Логин или пароль неверный 3")
+            send_welcome(message)
+
 
 bot.polling(none_stop=True)
