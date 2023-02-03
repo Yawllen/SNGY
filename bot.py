@@ -3,9 +3,11 @@ import telebot
 import config
 import sqlite3
 import time
+# import requests
 
 salt = b"yawllen"
 bot = telebot.TeleBot(config.TOKEN)
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -14,24 +16,28 @@ def send_welcome(message):
     if secondName is not None:
         bot.send_message(message.chat.id, "Здравствуйте, " + name + " " + secondName + "! ")
         time.sleep(1)
-        bot.send_message(message.chat.id, "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
+        bot.send_message(message.chat.id,
+                         "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
         time.sleep(1)
         login = bot.send_message(message.chat.id, 'Введите логин')
         bot.register_next_step_handler(login, step_Set_Login)
     else:
         bot.send_message(message.chat.id, "Привет, " + name + "! ")
         time.sleep(1)
-        bot.send_message(message.chat.id, "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
+        bot.send_message(message.chat.id,
+                         "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
         time.sleep(1)
         login = bot.send_message(message.chat.id, 'Введите логин')
         bot.register_next_step_handler(login, step_Set_Login)
 
+
 def step_Set_Login(message):
     global userLogin
-    userLogin= message.text
+    userLogin = message.text
     time.sleep(1)
     password = bot.send_message(message.chat.id, "Введите пароль")
     bot.register_next_step_handler(password, step_Set_Password)
+
 
 def step_Set_Password(message):
     global key
@@ -39,9 +45,6 @@ def step_Set_Password(message):
     # bot.send_message(message.chat.id, "Ваш пароль: " + password)
     check(message)
 
-@bot.message_handler(commands=['Link'])
-def send_link(message):
-    bot.send_message(message.chat.id, "@PractInSynerBot")
 
 def check(message):
     loginForCheck = str(userLogin)
@@ -71,5 +74,18 @@ def check(message):
         time.sleep(1)
         bot.send_message(message.chat.id, "Логин или пароль неверный 3")
         send_welcome(message)
+
+
+
+
+@bot.message_handler(commands=['Link'])
+def send_link(message):
+    bot.send_message(message.chat.id, "@PractInSynerBot")
+
+
+
+
+    # bot.send_message(message.chat.id, message.chat.id)
+
 
 bot.polling(none_stop=True)
