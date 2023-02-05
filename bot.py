@@ -3,33 +3,61 @@ import telebot
 import config
 import sqlite3
 import time
-# import requests
+
 
 salt = b"yawllen"
 bot = telebot.TeleBot(config.TOKEN)
 
-
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    if(message.chat.id > 0):  #личка
+        welcome(message)
+    else:                   #группа
+        bot.send_message(message.chat.id, "@PractInSynerBot")
+        if message.from_user.id == 623505995:
+            bot.send_message(message.chat.id, "Админ")
+            @bot.message_handler(commands=['proj'])
+            def admin(message):
+                time.sleep(1)
+                numProj = bot.send_message(message.chat.id, 'Введите номер проекта')
+                bot.register_next_step_handler(numProj, step_Set_Project)
+            def step_Set_Project(message):
+                adminProj = message.text
+                conn = sqlite3.connect('sup.sqlite')
+                cur = conn.cursor()
+                cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{adminProj}'")
+                record = cur.fetchone()
+                if record:
+                    if record[1] == adminProj:
+                       bot.send_message(message.chat.id, "ID проекта: " + str(record[0]))
+                    else:
+                        cur.close()
+                        time.sleep(1)
+                        bot.send_message(message.chat.id, "ID проекта с таким номером не найден")
+                        admin(message)
+                else:
+                    cur.close()
+                    time.sleep(1)
+                    bot.send_message(message.chat.id, "Записи не найдены")
+                    admin(message)
+
+def welcome(message):
     name = message.from_user.first_name
     secondName = message.from_user.last_name
     if secondName is not None:
         bot.send_message(message.chat.id, "Здравствуйте, " + name + " " + secondName + "! ")
         time.sleep(1)
-        bot.send_message(message.chat.id,
-                         "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
+        bot.send_message(message.chat.id, "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
         time.sleep(1)
         login = bot.send_message(message.chat.id, 'Введите логин')
         bot.register_next_step_handler(login, step_Set_Login)
     else:
         bot.send_message(message.chat.id, "Привет, " + name + "! ")
         time.sleep(1)
-        bot.send_message(message.chat.id,
-                         "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
+        bot.send_message(message.chat.id, "Для того, чтобы получать и отправлять сообщения, нужно провести аутентификацию на сайте.")
         time.sleep(1)
         login = bot.send_message(message.chat.id, 'Введите логин')
         bot.register_next_step_handler(login, step_Set_Login)
-
 
 def step_Set_Login(message):
     global userLogin
@@ -38,13 +66,11 @@ def step_Set_Login(message):
     password = bot.send_message(message.chat.id, "Введите пароль")
     bot.register_next_step_handler(password, step_Set_Password)
 
-
 def step_Set_Password(message):
     global key
     key = hashlib.pbkdf2_hmac('sha256', message.text.encode('utf-8'), salt, 100000)
     # bot.send_message(message.chat.id, "Ваш пароль: " + password)
     check(message)
-
 
 def check(message):
     loginForCheck = str(userLogin)
@@ -59,6 +85,21 @@ def check(message):
                 bot.send_message(message.chat.id, "Добро пожаловать, " + record[3] + '!')
                 time.sleep(1)
                 bot.send_message(message.chat.id, "Ваш ID: " + str(record[0]))
+                userID = str(record[0])
+                conn = sqlite3.connect('db_proj.db')
+                cur = conn.cursor()
+                cur.execute(f"SELECT id_user FROM CHAT WHERE id_user = '{userID}'")
+                eq = cur.fetchone()
+                if eq is None:
+                    cur.execute(f"INSERT INTO CHAT (id_user, id_chat)  VALUES (?, ?)", (userID, message.chat.id))
+                    conn.commit()
+                    time.sleep(1)
+                    bot.send_message(message.chat.id, "Авторизация прошла успешно 1!")
+                    cur.close()
+                else:
+                    time.sleep(1)
+                    bot.send_message(message.chat.id, "Авторизация прошла успешно 2!")
+                    cur.close()
             else:
                 cur.close()
                 time.sleep(1)
@@ -74,18 +115,6 @@ def check(message):
         time.sleep(1)
         bot.send_message(message.chat.id, "Логин или пароль неверный 3")
         send_welcome(message)
-
-
-
-
-@bot.message_handler(commands=['Link'])
-def send_link(message):
-    bot.send_message(message.chat.id, "@PractInSynerBot")
-
-
-
-
-    # bot.send_message(message.chat.id, message.chat.id)
 
 
 bot.polling(none_stop=True)
