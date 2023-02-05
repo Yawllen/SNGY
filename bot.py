@@ -13,8 +13,7 @@ def send_welcome(message):
     if(message.chat.id > 0):  #личка
         welcome(message)
     else:                   #группа
-        bot.send_message(message.chat.id, "@PractInSynerBot")
-        if message.from_user.id == 623505995:
+        if message.from_user.id == 623505995: # тут нужны свои id админов
             bot.send_message(message.chat.id, "Админ")
             @bot.message_handler(commands=['proj'])
             def admin(message):
@@ -25,16 +24,33 @@ def send_welcome(message):
                 adminProj = message.text
                 conn = sqlite3.connect('sup.sqlite')
                 cur = conn.cursor()
+                bot.send_message(message.chat.id, "Вы ввели: " + adminProj)
                 cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{adminProj}'")
-                record = cur.fetchone()
-                if record:
-                    if record[1] == adminProj:
-                       bot.send_message(message.chat.id, "ID проекта: " + str(record[0]))
+                record1 = cur.fetchone()
+                bot.send_message(message.chat.id, record1)
+                if record1:
+                    idProj = str(record1[0])
+                    bot.send_message(message.chat.id, "ID проекта: " + idProj)
+                    conn = sqlite3.connect('db_proj.db')
+                    cur = conn.cursor()
+                    cur.execute(f"SELECT * FROM GROUPP WHERE id_project  = '{idProj}'")
+                    record2 = cur.fetchone()
+                    if record2:
+                        bot.send_message(message.chat.id, "Запись не пустая")
+                        if record2[1] is None:
+                            # bot.send_message(message.chat.id, "Обновление данных")
+                            cur.execute(f"UPDATE GROUPP SET  id_group  = '{message.chat.id}' WHERE id_project  = '{idProj}' ")
+                            conn.commit()
+                        else:
+                            # bot.send_message(message.chat.id, "Выход 1")
+                            cur.close()
                     else:
+                        # bot.send_message(message.chat.id, "Выход 2")
                         cur.close()
-                        time.sleep(1)
-                        bot.send_message(message.chat.id, "ID проекта с таким номером не найден")
-                        admin(message)
+
+                    time.sleep(1)
+                    bot.send_message(message.chat.id, "@PractInSynerBot")
+
                 else:
                     cur.close()
                     time.sleep(1)
