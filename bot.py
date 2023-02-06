@@ -1,9 +1,9 @@
 import hashlib
+import re
 import telebot
 import config
 import sqlite3
 import time
-
 
 salt = b"yawllen"
 bot = telebot.TeleBot(config.TOKEN)
@@ -13,49 +13,66 @@ def send_welcome(message):
     if(message.chat.id > 0):  #личка
         welcome(message)
     else:                   #группа
-        if message.from_user.id == 623505995: # тут нужны свои id админов
-            bot.send_message(message.chat.id, "Админ")
-            @bot.message_handler(commands=['proj'])
-            def admin(message):
-                time.sleep(1)
-                numProj = bot.send_message(message.chat.id, 'Введите номер проекта')
-                bot.register_next_step_handler(numProj, step_Set_Project)
-            def step_Set_Project(message):
-                adminProj = message.text
-                conn = sqlite3.connect('sup.sqlite')
-                cur = conn.cursor()
-                bot.send_message(message.chat.id, "Вы ввели: " + adminProj)
-                cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{adminProj}'")
-                record1 = cur.fetchone()
-                bot.send_message(message.chat.id, record1)
-                if record1:
-                    idProj = str(record1[0])
-                    bot.send_message(message.chat.id, "ID проекта: " + idProj)
-                    conn = sqlite3.connect('db_proj.db')
+        admin = bot.get_chat_administrators(message.chat.id)
+        for i in range(len(admin)):
+            idAdmin = re.findall(r'\d+', str(admin[i]))
+            if str(message.from_user.id) == str(idAdmin[0]):  # тут нужны свои id админов
+                bot.send_message(message.chat.id, "-------Админ--------")
+
+
+                chat = str(bot.get_chat(message.chat.id, ))
+                bot.send_message(message.chat.id, chat)
+
+                split = chat
+                splitList= re.split(r',', split)
+                titles = str(splitList[2])
+                bot.send_message(message.chat.id, titles)
+                splitList2 = re.findall(r"'([^'\\]*(?:\\.[^'\\]*)*)'", titles, re.DOTALL)
+                bot.send_message(message.chat.id, str(splitList2[1]))
+
+
+                @bot.message_handler(commands=['proj'])
+                def admin(message):
+                    time.sleep(1)
+                    numProj = bot.send_message(message.chat.id, 'Введите номер проекта')
+                    bot.register_next_step_handler(numProj, step_Set_Project)
+                def step_Set_Project(message):
+                    adminProj = message.text
+                    conn = sqlite3.connect('sup.sqlite')
                     cur = conn.cursor()
-                    cur.execute(f"SELECT * FROM GROUPP WHERE id_project  = '{idProj}'")
-                    record2 = cur.fetchone()
-                    if record2:
-                        bot.send_message(message.chat.id, "Запись не пустая")
-                        if record2[1] is None:
-                            # bot.send_message(message.chat.id, "Обновление данных")
-                            cur.execute(f"UPDATE GROUPP SET  id_group  = '{message.chat.id}' WHERE id_project  = '{idProj}' ")
-                            conn.commit()
+                    bot.send_message(message.chat.id, "Вы ввели: " + adminProj)
+                    cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{adminProj}'")
+                    record1 = cur.fetchone()
+                    bot.send_message(message.chat.id, record1)
+                    if record1:
+                        idProj = str(record1[0])
+                        bot.send_message(message.chat.id, "ID проекта: " + idProj)
+                        conn = sqlite3.connect('db_proj.db')
+                        cur = conn.cursor()
+                        cur.execute(f"SELECT * FROM GROUPP WHERE id_project  = '{idProj}'")
+                        record2 = cur.fetchone()
+                        if record2:
+                            if record2[1] is None:
+                                # bot.send_message(message.chat.id, "Обновление данных")
+                                cur.execute(
+                                    f"UPDATE GROUPP SET  id_group  = '{message.chat.id}' WHERE id_project  = '{idProj}' ")
+                                conn.commit()
+                            else:
+                                # bot.send_message(message.chat.id, "Выход 1")
+                                cur.close()
                         else:
-                            # bot.send_message(message.chat.id, "Выход 1")
+                            # bot.send_message(message.chat.id, "Выход 2")
                             cur.close()
+
+                        time.sleep(1)
+                        bot.send_message(message.chat.id, "@PractInSynerBot")
+
                     else:
-                        # bot.send_message(message.chat.id, "Выход 2")
                         cur.close()
+                        time.sleep(1)
+                        bot.send_message(message.chat.id, "Записи не найдены")
+                        admin(message)
 
-                    time.sleep(1)
-                    bot.send_message(message.chat.id, "@PractInSynerBot")
-
-                else:
-                    cur.close()
-                    time.sleep(1)
-                    bot.send_message(message.chat.id, "Записи не найдены")
-                    admin(message)
 
 def welcome(message):
     name = message.from_user.first_name
