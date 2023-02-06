@@ -16,37 +16,27 @@ def send_welcome(message):
         admin = bot.get_chat_administrators(message.chat.id)
         for i in range(len(admin)):
             idAdmin = re.findall(r'\d+', str(admin[i]))
-            if str(message.from_user.id) == str(idAdmin[0]):  # тут нужны свои id админов
+            if str(message.from_user.id) == str(idAdmin[0]):
                 bot.send_message(message.chat.id, "-------Админ--------")
-
-
                 chat = str(bot.get_chat(message.chat.id, ))
-                bot.send_message(message.chat.id, chat)
-
-                split = chat
-                splitList= re.split(r',', split)
-                titles = str(splitList[2])
-                bot.send_message(message.chat.id, titles)
-                splitList2 = re.findall(r"'([^'\\]*(?:\\.[^'\\]*)*)'", titles, re.DOTALL)
-                bot.send_message(message.chat.id, str(splitList2[1]))
-
-
+                splitList= re.split(r',', chat)
+                splitList2 = str(splitList[2])
+                title = re.findall(r"'([^'\\]*(?:\\.[^'\\]*)*)'", splitList2, re.DOTALL)
+                numProj = str(re.sub(r'[^!?,.\d]+', '', str(title[1])))
                 @bot.message_handler(commands=['proj'])
                 def admin(message):
                     time.sleep(1)
-                    numProj = bot.send_message(message.chat.id, 'Введите номер проекта')
-                    bot.register_next_step_handler(numProj, step_Set_Project)
+                    bot.send_message(message.chat.id, "Номер вашего проекта: " + numProj)
+                    step_Set_Project(message)
                 def step_Set_Project(message):
-                    adminProj = message.text
+
                     conn = sqlite3.connect('sup.sqlite')
                     cur = conn.cursor()
-                    bot.send_message(message.chat.id, "Вы ввели: " + adminProj)
-                    cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{adminProj}'")
+                    cur.execute(f"SELECT * FROM PROJ_SUP WHERE num_project = '{numProj}'")
                     record1 = cur.fetchone()
-                    bot.send_message(message.chat.id, record1)
                     if record1:
                         idProj = str(record1[0])
-                        bot.send_message(message.chat.id, "ID проекта: " + idProj)
+                        bot.send_message(message.chat.id, "ID вашего проекта: " + idProj)
                         conn = sqlite3.connect('db_proj.db')
                         cur = conn.cursor()
                         cur.execute(f"SELECT * FROM GROUPP WHERE id_project  = '{idProj}'")
@@ -72,8 +62,6 @@ def send_welcome(message):
                         time.sleep(1)
                         bot.send_message(message.chat.id, "Записи не найдены")
                         admin(message)
-
-
 def welcome(message):
     name = message.from_user.first_name
     secondName = message.from_user.last_name
