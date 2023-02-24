@@ -33,12 +33,19 @@ def send_welcome(message):
                 numProj = str(re.sub(r'[^!?,.\d]+', '', str(title[1])))
                 @bot.message_handler(commands=['proj'])
                 def admin(message):
-                    """
-                    По команде /proj бот выводит номер нашего проекта исходя из названия группы.
-                    """
-                    time.sleep(1)
-                    bot.send_message(message.chat.id, "Номер вашего проекта: " + numProj)
-                    step_Set_Project(message)
+
+                    admin = bot.get_chat_administrators(message.chat.id)
+                    for i in range(len(admin)):
+                        idAdmin = re.findall(r'\d+', str(admin[i]))
+                        if str(message.from_user.id) == str(idAdmin[0]):
+                            """
+                            По команде /proj бот выводит номер нашего проекта исходя из названия группы.
+                            """
+                            time.sleep(1)
+                            bot.send_message(message.chat.id, "Номер вашего проекта: " + numProj)
+                            step_Set_Project(message)
+                        else:
+                            bot.send_message(message.chat.id, "Вы не админ")
                 def step_Set_Project(message):
                     """
                     1. Получение id проекта из БД по номеру проекта.
@@ -74,7 +81,8 @@ def send_welcome(message):
                         cur.close()
                         time.sleep(1)
                         bot.send_message(message.chat.id, "Записи не найдены")
-                        admin(message)
+            else:
+                bot.send_message(message.chat.id, "Вы не админ")
 def welcome(message):
     """
     Приветствие и аутентификация пользователя в лс
